@@ -1,5 +1,5 @@
-hell.c
-------
+assault
+-------
 
 Summary
 -------
@@ -12,7 +12,7 @@ Requirements
 
 Usage
 -----
-Options for using `hell` are as follows:
+Options for using `assault` are as follows:
 <pre>
 -c, --count <arg>      Run tests this many times.
 -u, --url <arg>        Run against this URL.
