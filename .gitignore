@@ -1,3 +1,8 @@
 assault
 vendor/
+*.wav
+*.png
+*.avi
+*.hex
+wavgen
 TODO

@@ -9,6 +9,7 @@ A test suite to test socket delivery rates against web servers.
 Requirements
 ------------
 - libcurl
+- libpng
 - pthread
 
 Usage
@@ -33,6 +34,7 @@ Options for using `assault` are as follows:
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
+#include <png.h>
 
 #define PROGRAM "assault: "
 
@@ -106,20 +108,6 @@ char * copy_arg ( char **av, char **dest, int len ) {
 	return *dest;
 }
 
-
-
-//Generate random strings to test out my understanding of pthreads
-char * generate_random_string () {
-	char *content = malloc( 11 );
-	memset( content, 0, 11 );
-
-	for ( int i = 0; i < 10; i++ ) {
-		content[ i ] = ( rand() % 93 ) + 32;
-	}
-	
-	content[ 10 ] = '\0';
-	return content;
-}
 
 
 
@@ -196,6 +184,30 @@ void analyze_http_result ( HttpResult *r ) {
 }
 
 
+//Generate random strings to test out my understanding of pthreads
+char * generate_random_string () {
+	char *content = malloc( 11 );
+	memset( content, 0, 11 );
+
+	for ( int i = 0; i < 10; i++ ) {
+		content[ i ] = ( rand() % 93 ) + 32;
+	}
+	
+	content[ 10 ] = '\0';
+	return content;
+}
+
+
+//Generate some kind of data
+unsigned int * generate_random_image () {
+	return NULL;
+}
+
+
+//Generate a WAV form
+unsigned int * generate_random_wav () {
+	return NULL;
+}
 
 //Generate a request to a server
 void * make_request ( void *arg ) {
