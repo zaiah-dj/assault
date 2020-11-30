@@ -24,10 +24,9 @@ Options for using `assault` are as follows:
 </pre>
 
  * -------------------------------------------------------- */
-
-
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <curl/curl.h>
@@ -43,8 +42,9 @@ int opt_throwaway = 0;
 int rcount = 1;
 char path[ 2048 ] = { 0 }; 
 char url[ 2048 ] = { 0 }; 
-char type[ 8 ] = { 'G', 'E', 'T' };
-char *types[6] = { "HEAD", "GET", "POST", "PATCH", "PUT", "DELETE" };
+char method[ 16 ] = { 'G', 'E', 'T', '\0' };
+const char *methods[6] = { "HEAD", "GET", "POST", "PATCH", "PUT", "DELETE" };
+
 
 typedef struct HttpResult {
 
@@ -82,7 +82,7 @@ typedef struct HttpResult {
 void help() {
 	fprintf( stderr, "-c, --count <arg>      Run tests this many times.\n" );
 	fprintf( stderr, "-u, --url <arg>        Run against this URL.\n" );
-	fprintf( stderr, "-e, --memory           Do not use any local file storage ( WARNING: Large responses may cause problems... )\n" );
+	fprintf( stderr, "    --memory           Do not use any local file storage ( WARNING: Large responses may cause problems... )\n" );
 	fprintf( stderr, "-d, --directory <arg>  Store the results here.\n" );
 	fprintf( stderr, "-x, --discard          Discard any results from server.\n" );
 	fprintf( stderr, "    --dry-run          Show what we would have done.\n" );
@@ -93,7 +93,7 @@ void help() {
 
 
 //Copy arguments
-char * copy_arg ( char **av, char **dest ) {
+char * copy_arg ( char **av, char **dest, int len ) {
 	char *arg = *av;
 
 	if ( !( *( ++av ) ) || **av == '-' ) {
@@ -101,7 +101,7 @@ char * copy_arg ( char **av, char **dest ) {
 		return NULL;
 	}
 
-	memset( dest, 0, strlen( *av ) + 5 );
+	memset( dest, 0, len );
 	memcpy( dest, *av, strlen( *av ) );
 	return *dest;
 }
@@ -169,6 +169,7 @@ int db( CURL *h, curl_infotype type, char *data, size_t size, void *ptr ) {
 }
 
 
+
 //Destroy httpResult
 void free_http_result ( HttpResult *r ) {
 	free( r->dout );
@@ -193,6 +194,7 @@ void analyze_http_result ( HttpResult *r ) {
 	fprintf( stderr, "Data received (%d bytes):\n", r->length );
 	//write( 2, r->content, 10 );
 }
+
 
 
 //Generate a request to a server
@@ -267,24 +269,55 @@ int main ( int argc, char *argv[] ) {
 	}
 
 	//Get all the options
-	while ( *argv ) {
+	while ( *( ++argv ) ) {
 		if ( !strcmp( *argv, "-c" ) || !strcmp( *argv, "--count" ) )
 			rcount = atoi( *( ++argv ) );
 		else if ( !strcmp( *argv, "--dry-run" ) )
 			opt_dryrun = 1;	
-		else if ( !strcmp( *argv, "-m" ) || !strcmp( *argv, "--memory" ) )
+		else if ( !strcmp( *argv, "--memory" ) )
 			opt_memory = 1;	
 		else if ( !strcmp( *argv, "-x" ) || !strcmp( *argv, "--discard" ) )
 			opt_throwaway = 1;	
 		else if ( !strcmp( *argv, "-u" ) || !strcmp( *argv, "--url" ) ) {
-			if ( !copy_arg( argv, ( char ** )&url ) ) 
-			return 1; 
+			if ( !copy_arg( argv, ( char ** )&url, sizeof(url) ) ) {
+				return 1; 
+			}
+
+			//check that the url is valid in some way
+			int found = 0;
+			if ( strlen( url ) < 8 || ( memcmp( url, "http://", 7 ) && memcmp( url, "https://", 8 ) ) ) {
+				fprintf( stderr, PROGRAM "This doesn't look like a valid URL '%s'.\n", url );
+				return 1;
+			}
+			argv++;
 		}
 		else if ( !strcmp( *argv, "-d" ) || !strcmp( *argv, "--directory" ) ) {
-			if ( !copy_arg( argv, ( char ** )&path) ) 
+			if ( !copy_arg( argv, ( char ** )&path, sizeof(path) ) ) 
 			return 1; 
+			argv++;
 		}
-		argv++;
+		else if ( !strcmp( *argv, "-m" ) || !strcmp( *argv, "--method" ) ) {
+			if ( !copy_arg( argv, ( char ** )&method , sizeof(method) ) ) {
+				return 1; 
+			}
+			int found = 0;
+			for ( int i = 0; i < 6; i++ ) {
+				if ( !strcasecmp( method, methods[ i ] ) ) {
+					found = 1;
+					break;	
+				}
+			}
+			if ( !found ) {
+				fprintf( stderr, PROGRAM "Unsupported HTTP method '%s'.\n", method );
+				return 1;
+			}
+
+			argv++;
+		}
+		else {
+			fprintf( stderr, PROGRAM "Unsupported option %s.\n", *argv );
+			return 1;
+		}
 	}
 
 	
@@ -339,10 +372,8 @@ int main ( int argc, char *argv[] ) {
 		return 1;
 	}
 
-
 	//Activate cURL
 	curl_global_init( CURL_GLOBAL_ALL );
-
 
 	//If they're all finished let's do some stuff
 	for ( int i = 0; i < rcount ; i ++ ) {
