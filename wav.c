@@ -87,6 +87,7 @@ int * generate_random_wav ( unsigned int length, unsigned int *size ) {
 	const int sample_rate = 44100;
 	const int sample_count = sample_rate * length;
 	const int byterate = sample_rate * channels * ( bits_per_sample / 8 );
+	const float vol = 32000.0;
 
 	//Catch useless lengths
 	if ( length < 1 ) {
@@ -131,7 +132,6 @@ int * generate_random_wav ( unsigned int length, unsigned int *size ) {
 
 	//Generate the sound data
 	buffer += 44;
-	float vol = 32000.0;
 	for ( int i = 0; i < sample_count; i++ ) {
 		buffer[ ( 2 * i ) ] = vol * sin( ( 440.0 / sample_rate ) * 2 * i * M_PI ); 
 		buffer[ ( 2 * i ) + 1 ] = vol * sin( ( 600.0 / sample_rate ) * 2 * i * M_PI ); 
