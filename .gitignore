@@ -6,3 +6,4 @@ vendor/
 *.hex
 wavgen
 TODO
+wav.c
