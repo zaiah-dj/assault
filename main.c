@@ -44,7 +44,9 @@ Options for using `assault` are as follows:
 int opt_dryrun = 0;
 int opt_memory = 0;
 int opt_throwaway = 0;
+int opt_binary = 0;
 int rcount = 1;
+int body_size = 1;
 char path[ 2048 ] = { 0 }; 
 char url[ 2048 ] = { 0 }; 
 char method[ 16 ] = { 'G', 'E', 'T', '\0' };
@@ -268,6 +270,21 @@ char * generate_random_string () {
 }
 
 
+//Generate a body if necessary
+int generate_body ( CURL *handle, void *p ) {
+	if ( !strcmp( "HEAD", method ) || !strcmp( "GET", method ) !! strcmp( "DELETE", method ) ) {
+		return 0;
+	}
+
+	//Binary, JSON, XML or not?
+	if ( !opt_binary ) {
+		//Generate a regular POST request
+	}
+
+	return 1;
+}
+
+
 
 //Generate a request to a server
 void * make_request ( void *arg ) {
@@ -302,6 +319,7 @@ void * make_request ( void *arg ) {
 	curl_easy_setopt( h, CURLOPT_DEBUGDATA, r );
 
 	//Set the method and any data
+	
 
 	//Choose whether it's going to memory or not
 	if ( opt_memory ) {
@@ -344,6 +362,10 @@ int main ( int argc, char *argv[] ) {
 	while ( *( ++argv ) ) {
 		if ( !strcmp( *argv, "-c" ) || !strcmp( *argv, "--count" ) )
 			rcount = atoi( *( ++argv ) );
+		else if ( !strcmp( *argv, "-s" ) || !strcmp( *argv, "--size" ) )
+			body_size = atoi( *( ++argv ) );
+		else if ( !strcmp( *argv, "-b" ) || !strcmp( *argv, "--binary" ) )
+			opt_binary = 1; 
 		else if ( !strcmp( *argv, "--dry-run" ) )
 			opt_dryrun = 1;	
 		else if ( !strcmp( *argv, "--memory" ) )
@@ -351,12 +373,11 @@ int main ( int argc, char *argv[] ) {
 		else if ( !strcmp( *argv, "-x" ) || !strcmp( *argv, "--discard" ) )
 			opt_throwaway = 1;	
 		else if ( !strcmp( *argv, "-u" ) || !strcmp( *argv, "--url" ) ) {
+			int found = 0;
 			if ( !copy_arg( argv, ( char ** )&url, sizeof(url) ) ) {
 				return 1; 
 			}
-
 			//check that the url is valid in some way
-			int found = 0;
 			if ( strlen( url ) < 8 || ( memcmp( url, "http://", 7 ) && memcmp( url, "https://", 8 ) ) ) {
 				fprintf( stderr, PROGRAM "This doesn't look like a valid URL '%s'.\n", url );
 				return 1;
@@ -368,11 +389,12 @@ int main ( int argc, char *argv[] ) {
 			return 1; 
 			argv++;
 		}
+
 		else if ( !strcmp( *argv, "-m" ) || !strcmp( *argv, "--method" ) ) {
+			int found = 0;
 			if ( !copy_arg( argv, ( char ** )&method , sizeof(method) ) ) {
 				return 1; 
 			}
-			int found = 0;
 			for ( int i = 0; i < 6; i++ ) {
 				if ( !strcasecmp( method, methods[ i ] ) ) {
 					found = 1;
@@ -383,7 +405,6 @@ int main ( int argc, char *argv[] ) {
 				fprintf( stderr, PROGRAM "Unsupported HTTP method '%s'.\n", method );
 				return 1;
 			}
-
 			argv++;
 		}
 		else {
