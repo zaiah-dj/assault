@@ -34,7 +34,10 @@ Options for using `assault` are as follows:
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
-#include <png.h>
+#include <math.h>
+#ifndef		M_PI
+#define		M_PI		3.14159265358979323846264338
+#endif
 
 #define PROGRAM "assault: "
 
@@ -157,6 +160,72 @@ int db( CURL *h, curl_infotype type, char *data, size_t size, void *ptr ) {
 }
 
 
+//Generate random WAV data of an arbitrary length (under 4gb, please)
+int * generate_random_wav ( unsigned int length, unsigned int *size ) {
+	
+	//Calculate constants here
+	const int bits_per_sample = 16;
+	const int channels = 2;
+	const int sample_rate = 44100;
+	const int sample_count = sample_rate * length;
+	const int byterate = sample_rate * channels * ( bits_per_sample / 8 );
+	const float vol = 32000.0;
+	int *buffer = NULL;
+	unsigned int bufsize = 0;
+
+	//Catch useless lengths
+	if ( length < 1 ) {
+		fprintf( stderr, "Length must be longer than 1 second.\n" );
+		return NULL;
+	}
+
+	if ( length * byterate > INT_MAX ) {
+		fprintf( stderr, "Length is too long.\n" );
+		return NULL;
+	}
+
+	//Simple RIFF header, courtesy of: http://soundfile.sapp.org/doc/WaveFormat/
+	unsigned int header[12] = {
+		0x46464952 // 'RIFF'
+	, 36 + ( sample_rate * length ) * channels * ( bits_per_sample / 8 )
+	, 0x45564157 // 'WAVE'
+	, 0x20746d66 // 'fmt '
+	, 0x00000010 // PCM
+	, 0x00020001 // Use PCM audio format & specify single channel
+	, sample_rate // Sample rate (44100)
+	, byterate // byte rate ( 44100 * # of channels * bits per sample/8 )
+	, 0x00100004 // block alignment and bits per sampl
+	, 0x61746164 // 'data'
+	, ( sample_rate * length ) * channels * ( bits_per_sample / 8 )
+	, 0x00000000
+	};	
+
+	//Define buffer size
+	bufsize = 2 * ( channels * sample_count ) * sizeof( int ); 
+
+	//Allocate and die if we're out of space
+	if ( !( buffer = malloc( 44 + bufsize ) ) ) {
+		fprintf( stderr, "Failed to generate buffer for sound data.\n" );
+		return 0;
+	}
+
+	//Write the header
+	memset( buffer, 0, 44 + bufsize );
+	memcpy( buffer, header, 44 );
+
+	//Generate the sound data
+	buffer += 44;
+	for ( int i = 0; i < sample_count; i++ ) {
+		buffer[ ( 2 * i ) ] = vol * sin( ( 440.0 / sample_rate ) * 2 * i * M_PI ); 
+		buffer[ ( 2 * i ) + 1 ] = vol * sin( ( 600.0 / sample_rate ) * 2 * i * M_PI ); 
+	}
+
+	//Get fancy :)
+	buffer -= 44;
+	*size = 44 + bufsize; 
+	return buffer;
+}
+
 
 //Destroy httpResult
 void free_http_result ( HttpResult *r ) {
@@ -184,6 +253,7 @@ void analyze_http_result ( HttpResult *r ) {
 }
 
 
+
 //Generate random strings to test out my understanding of pthreads
 char * generate_random_string () {
 	char *content = malloc( 11 );
@@ -198,16 +268,6 @@ char * generate_random_string () {
 }
 
 
-//Generate some kind of data
-unsigned int * generate_random_image () {
-	return NULL;
-}
-
-
-//Generate a WAV form
-unsigned int * generate_random_wav () {
-	return NULL;
-}
 
 //Generate a request to a server
 void * make_request ( void *arg ) {

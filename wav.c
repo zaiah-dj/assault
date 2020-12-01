@@ -25,8 +25,6 @@
 #define LIBSNDFILE_TEST_WAV "sine-lsf.wav"
 #define ASSAULT_TEST_WAV "sine-ass.wav"
 
-#if 1
-//Using libsndfile
 int generate_via_libsndfile() {
 	const int length = 4;
 	const int amplitude = AMPLITUDE;
@@ -74,7 +72,6 @@ printf( "sndfile malloc: %d\n", bufsize );
 	free( buffer );
 	return 0;
 }
-#endif
 
 
 
@@ -137,49 +134,34 @@ int * generate_random_wav ( unsigned int length, unsigned int *size ) {
 		buffer[ ( 2 * i ) + 1 ] = vol * sin( ( 600.0 / sample_rate ) * 2 * i * M_PI ); 
 	}
 
-#if 0
+	//Get fancy :)
 	buffer -= 44;
+	*size = 44 + bufsize; 
+	return buffer;
+}
+
+
+
+//Write the file out for test purposes...
+int write_file ( int *a, int size ) {
 	int fd = -1;
+
 	//Open a file and write data
 	if ( ( fd = open( ASSAULT_TEST_WAV, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU ) ) == -1 ) {
 		fprintf( stderr, "Couldn't open wave file for writing: %s\n", strerror( errno ) );	
 		return 0;
 	}
 
-	if ( write( fd, buffer, 44 + bufsize ) == -1 ) {
+	if ( write( fd, a, size ) == -1 ) {
 		fprintf( stderr, "Couldn't open wave file for writing: %s\n", strerror( errno ) );	
 		return 0;
 	}
 
 	close( fd );
-#endif
-	return buffer;
-}
-
-
-
-#if 0
-//Write the file out for test purposes...
-int write_file ( unsigned int *a, int size ) {
-	//Open a file and write data
-	if ( ( fd = open( "yourwav.wav", O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU ) ) == -1 ) {
-		fprintf( stderr, "Couldn't open wave file for writing: %s\n", strerror( errno ) );	
-		return 0;
-	}
-
-	if ( write( fd, buffer, bufsize ) == -1 ) {
-		fprintf( stderr, "Couldn't open wave file for writing: %s\n", strerror( errno ) );	
-		return 0;
-	}
-
-	close( fd );
-	free( buffer );
 	return 1;
 }
-#endif
 
 
-#if 1
 int main (int argc, char *argv[]) {
 	
 	int len = 0;
@@ -190,7 +172,6 @@ int main (int argc, char *argv[]) {
 		fprintf( stderr, "I require at least one argument: length in seconds.\n" );
 		return 1;
 	}
-
 
 #if 1
 	len = atoi( *( ++argv ) );
@@ -203,18 +184,14 @@ int main (int argc, char *argv[]) {
 	}
 #endif
 
-	generate_via_libsndfile();
-
 	if ( !(data = generate_random_wav( len, &size )) ) {
 		return 1;
 	}
 
-#if 0
 	if ( !write_file( data, size ) ) {
 		return 1;
 	} 
-#endif
 
+	free( data );
 	return 0;
 }
-#endif
